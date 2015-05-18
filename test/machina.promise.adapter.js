@@ -1,6 +1,6 @@
 var Promise = require( "../lib/machina.promise.js" );
 
-module.exports.fulfilled = function ( value ) {
+module.exports.resolved = function ( value ) {
 	var d = new Promise();
 	d.fulfill( value );
 	return d;
@@ -12,12 +12,12 @@ module.exports.rejected = function ( reason ) {
 	return d;
 }
 
-module.exports.pending = function () {
+module.exports.deferred = function () {
 	var d = new Promise();
 
 	return {
 		promise: d,
-		fulfill: d.fulfill,
+		resolve: d.fulfill,
 		reject: d.reject
 	};
 }

@@ -12,7 +12,7 @@ describe( "machina.Promise", function () {
 	});
 
 	describe( "When resolving", function () {
-		it( "Should call completeCallback when a promise is fulfilld", function ( done ) {
+		it( "Should call completeCallback when a promise is fulfilled", function ( done ) {
 			d.then( function ( data ){
 				expect( data ).to.be( "Test" );
 				done();

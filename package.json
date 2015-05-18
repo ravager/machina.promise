@@ -4,7 +4,7 @@
 	"author": "Doug Neiner <dneiner@appendto.com>",
 	"description": "A lightweight Promises/A compliant implementation for projects already using the machina state machine library.",
 	"scripts": {
-		"test": "mocha spec --reporter spec && promise-tests all test/machina.promise.adapter.js"
+		"test": "mocha spec --reporter spec && promises-aplus-tests test/machina.promise.adapter.js"
 	},
 	"main" : "lib/node/machina.promise.js",
 	"repository" : {
@@ -22,7 +22,7 @@
 	"devDependencies": {
 		"expect.js": "",
 		"mocha": "",
-		"promise-tests": ""
+		"promises-aplus-tests": ""
 	},
 	 "licenses" : [
         {
