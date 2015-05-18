@@ -1,37 +1,60 @@
+/* global _ */
+
 var Promise = machina.Fsm.extend({
-	initialState: "unfulfilled",
+	initialState: "pending",
 	initialize: function () {
-		_.bindAll( this, "reject", "fulfill", "then" );
+		_.bindAll( this, "reject", "fulfill", "handleThen", "then", "catch" );
 	},
 	reject: function ( data ) {
-		this.handle( "process", { action: "failed", data: data } );
+		this.handle( "process", { action: "rejected", data: data } );
 	},
 	fulfill: function ( data ) {
 		this.handle( "process", { action: "fulfilled", data: data } );
 	},
-	then: function ( completeHandler, errorHandler ) {
+	handleThen: function () {
+		var fn = _.bind( this.handle, this, "then" );
+		if ( Promise.useExtensions ) {
+			_.defer( fn );
+		} else {
+			fn();
+		}
+	},
+	then: function ( onFulfilled, onRejected ) {
 		var self = this;
 		var promise = new Promise();
 
 		var callback = function () {
 			self.off( "fulfilled", callback );
-			self.off( "failed", callback );
+			self.off( "rejected", callback );
 
 			var fulfilled = self.state === "fulfilled";
-			var handler = fulfilled ? completeHandler : errorHandler;
+			var handler = fulfilled ? onFulfilled : onRejected;
 			var ret;
 
-			if ( handler ) {
+			if ( _.isFunction( handler ) ) {
 				try {
 					ret = handler.apply( null, arguments );
-				} catch ( e ) {
-					promise.reject.call( null, e );
+					if ( ret === promise ) {
+						throw new TypeError( "2.3.1: Throw TypeError in case of inception" );
+					}
+				} catch ( handlerThrowsException ) {
+					_.defer( promise.reject, handlerThrowsException );
 					return;
 				}
-				if ( Promise.useExtensions && ret && ret.then ) {
-					ret.then( promise.fulfill, promise.reject );
+
+				if ( Promise.useExtensions && Promise.isThenable( ret ) ) {
+					try {
+						var nestedThen = ret.then;
+						if ( _.isFunction( nestedThen ) ) {
+							nestedThen.call( ret, promise.fulfill, promise.reject );
+						} else {
+							_.defer( promise.fulfill, ret );
+						}
+					} catch ( badThenException ) {
+						_.defer( promise.reject, badThenException );
+					}
 				} else {
-					promise.fulfill.call( null, ret );
+					_.defer( promise.fulfill, ret );
 				}
 			} else {
 				promise[ fulfilled ? "fulfill" : "reject" ].apply( null, arguments );
@@ -39,39 +62,62 @@ var Promise = machina.Fsm.extend({
 		};
 
 		this.on( "fulfilled", callback );
-		this.on( "failed", callback );
+		this.on( "rejected", callback );
 
-
-		if ( Promise.useExtensions ) {
-			_.defer( function () {
-				self.handle( "then" );
-			});
-		} else {
-			this.handle( "then" );
-		}
+		this.handleThen();
 
 		return promise;
 	},
+	"catch": function ( onRejected ) {
+		return this.then( undefined, onRejected );
+	},
 	states: {
-		unfulfilled: {
-			process: function( params ) {
-				this._data = params.data;
-				this.transition( params.action );
-				this.handle( "then" );
+		pending: {
+			process: function ( params ) {
+				var res = params.data;
+
+				var resolver = _.bind( function (_params) {
+					this._data = _params.data;
+					this.transition( _params.action );
+				}, this, params );
+
+				if ( Promise.useExtensions && Promise.isThenable( res ) ) {
+					try {
+						var nestedThen = res.then;
+						if ( _.isFunction( nestedThen ) ) {
+							nestedThen.call( res, this.fulfill, this.reject );
+						} else {
+							_.defer( resolver );
+						}
+					} catch ( badThenException ) {
+						_.defer( this.reject, badThenException );
+					}
+				} else {
+					resolver();
+				}
 			}
 		},
 		fulfilled: {
+			_onEnter: function () {
+				this.handleThen();
+			},
 			then: function () {
 				this.emit( "fulfilled", this._data );
 			}
 		},
-
-		failed: {
+		rejected: {
+			_onEnter: function () {
+				this.handleThen();
+			},
 			then: function () {
-				this.emit( "failed", this._data );
+				this.emit( "rejected", this._data );
 			}
 		}
 	}
 });
 
 Promise.useExtensions = true;
+
+Promise.isThenable = function ( object ) {
+	return _.isObject( object ) && 'then' in object;
+};

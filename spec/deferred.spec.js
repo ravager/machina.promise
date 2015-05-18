@@ -12,7 +12,7 @@ describe( "machina.Promise", function () {
 	});
 
 	describe( "When resolving", function () {
-		it( "Should call completeCallback when a promise is fulfilled", function ( done ) {
+		it( "Should call onFulfilled when a promise is fulfilled", function ( done ) {
 			d.then( function ( data ){
 				expect( data ).to.be( "Test" );
 				done();
@@ -21,7 +21,7 @@ describe( "machina.Promise", function () {
 			d.fulfill( "Test" );
 		});
 
-		it( "Should still call completeCallback for each then() added to the promise", function ( done ) {
+		it( "Should still call onFulfilled for each then() added to the promise", function ( done ) {
 			var counter = 0;
 
 			d.then( function ( data ) {
@@ -41,7 +41,7 @@ describe( "machina.Promise", function () {
 	});
 
 	describe( "When rejecting", function () {
-		it( "Should call an errorCallback when a promise is rejected", function ( done ) {
+		it( "Should call an onRejected when a promise is rejected", function ( done ) {
 			d.then( null, function ( data ){
 				expect( data ).to.be( "Test" );
 				done();
@@ -50,7 +50,7 @@ describe( "machina.Promise", function () {
 			d.reject( "Test" );
 		});
 
-		it( "Should still call an errorCallback for each then() added to the promise", function ( done ) {
+		it( "Should still call an onRejected for each then() added to the promise", function ( done ) {
 			var counter = 0;
 
 			d.then( null, function ( data ) {
